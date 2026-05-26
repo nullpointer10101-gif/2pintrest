@@ -1,8 +1,5 @@
 {
-  "target_channels": [
-    "https://pin.it/PRd6ZaIn7",
-    "https://pin.it/gvd9JFDFJ"
-  ],
+  "target_channels": [],
   "destination_channels": [
     {
       "name": "primary_account",
