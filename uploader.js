@@ -34,7 +34,7 @@ class PinterestUploader {
             await page.goto('https://www.pinterest.com/pin-builder/', { waitUntil: 'domcontentloaded', timeout: 120000 });
 
             // Ensure we are actually logged in by waiting for the profile picture or account menu
-            const isLoggedIn = await page.waitForSelector('div[data-test-id="header-profile"]', { timeout: 15000 }).catch(() => null);
+            const isLoggedIn = await page.waitForSelector('div[data-test-id="header-profile"], div[data-test-id="saved-tab"]', { timeout: 30000 }).catch(() => null);
             if (!isLoggedIn) {
                 console.error(`[Uploader - ${this.accountName}] Session cookie might be invalid. Not logged in.`);
                 await page.close();
@@ -194,10 +194,17 @@ class PinterestUploader {
 async function startUploaderLoop(maxPinsPerRun = 5) {
     console.log(`[Uploader] Starting Medium-Pace upload batch with Puppeteer (Max ${maxPinsPerRun} pins)...`);
 
-    // Launch a single browser instance for all uploading
     const browser = await puppeteer.launch({ 
         headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-notifications', '--disable-dev-shm-usage'] 
+        args: [
+            '--no-sandbox', 
+            '--disable-setuid-sandbox', 
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--single-process',
+            '--no-zygote',
+            '--disable-notifications'
+        ] 
     });
 
     // Initialize all uploader sessions
