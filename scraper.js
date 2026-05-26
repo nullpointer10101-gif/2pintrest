@@ -32,6 +32,17 @@ async function scrapeTargetChannels() {
     });
     const page = await browser.newPage();
     
+    // Block heavy resources to save RAM and CPU on Render Free Tier
+    await page.setRequestInterception(true);
+    page.on('request', (req) => {
+        const type = req.resourceType();
+        if (['image', 'stylesheet', 'font', 'media'].includes(type)) {
+            req.abort();
+        } else {
+            req.continue();
+        }
+    });
+    
     // Inject session cookie
     const sessionCookie = process.env.PINTEREST_SESSION_COOKIE || config.destination_channels[0].session_cookie;
     if (sessionCookie && sessionCookie !== "USE_ENV_VARIABLE") {
@@ -71,7 +82,7 @@ async function scrapeTargetChannels() {
             };
 
             page.on('response', boardListener);
-            await page.goto(targetUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+            await page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
             await waitMs(4000); // Wait for lazy API calls
             page.off('response', boardListener);
 
@@ -180,7 +191,7 @@ async function scrapeTargetChannels() {
                 };
 
                 page.on('response', pinListener);
-                await page.goto(boardUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+                await page.goto(boardUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
                 await waitMs(5000);
                 page.off('response', pinListener);
 

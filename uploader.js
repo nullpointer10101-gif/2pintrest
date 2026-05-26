@@ -31,7 +31,7 @@ class PinterestUploader {
             });
 
             // Navigate to Pin Creation page (Using Pinterest's standard UI builder)
-            await page.goto('https://www.pinterest.com/pin-builder/', { waitUntil: 'networkidle2', timeout: 60000 });
+            await page.goto('https://www.pinterest.com/pin-builder/', { waitUntil: 'domcontentloaded', timeout: 120000 });
 
             // Ensure we are actually logged in by checking for login elements
             const isLoggedIn = await page.$('div[data-test-id="header-profile"]');
