@@ -32,9 +32,7 @@ async function scrapeTargetChannels() {
             '--no-sandbox', 
             '--disable-setuid-sandbox', 
             '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--single-process',
-            '--no-zygote'
+            '--disable-gpu'
         ]
     });
     const page = await browser.newPage();
