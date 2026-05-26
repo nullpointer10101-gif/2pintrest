@@ -10,7 +10,7 @@ async function runOnce() {
     // 1. Run the Harvester to find new pins
     await scrapeTargetChannels();
 
-    // to the configured destination channels at a medium pace.
+    // 2. Upload the pending pins
     await startUploaderLoop();
 }
 
