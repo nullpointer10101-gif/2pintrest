@@ -84,103 +84,68 @@ class PinterestUploader {
                 }
             }
 
-            // 4.5. Select the Board (Create if missing)
+            // 4.5. Select the Board
             if (pinData.board_name) {
-                console.log(`[Uploader - ${this.accountName}] Trying to select/create board: "${pinData.board_name}"`);
+                console.log(`[Uploader - ${this.accountName}] Trying to select board: "${pinData.board_name}"`);
                 
                 // Open board dropdown
-                const boardDropdownOpened = await page.evaluate(() => {
+                const dropdownOpened = await page.evaluate(() => {
                     const dropdowns = Array.from(document.querySelectorAll('[data-test-id="board-dropdown-select-button"], [data-test-id="board-dropdown-button"]'));
-                    if (dropdowns.length > 0 && dropdowns[0]) {
-                        dropdowns[0].click();
-                        return true;
-                    }
-                    const fallbackBtns = Array.from(document.querySelectorAll('button, div[role="button"]'));
-                    for (const btn of fallbackBtns) {
-                        const txt = (btn.innerText || '').toLowerCase();
-                        if (txt === 'choose a board' || txt === 'select board' || txt.includes('save to board')) {
-                            btn.click();
-                            return true;
-                        }
-                    }
+                    if (dropdowns.length > 0) { dropdowns[0].click(); return true; }
                     return false;
                 });
 
-                if (boardDropdownOpened) {
-                    await delay(1500, 2500);
-                    const targetBoard = pinData.board_name.trim().toLowerCase();
-
-                    // Search for the board in the dropdown, or click "Create board"
-                    const boardAction = await page.evaluate((tBoard) => {
-                        const candidateSelectors = [
-                            '[data-test-id="board-row"]',
-                            '[data-test-id="board-row"] button',
-                            'div[role="listbox"] [role="option"]',
-                            'div[role="menu"] [role="menuitem"]'
-                        ];
-
-                        for (const sel of candidateSelectors) {
-                            const items = Array.from(document.querySelectorAll(sel));
-                            for (const item of items) {
-                                const text = (item.innerText || '').trim().toLowerCase();
-                                const cleanText = text.split('\n')[0].trim();
-                                if (item.offsetParent !== null && (cleanText === tBoard || cleanText.startsWith(tBoard))) {
-                                    item.scrollIntoView({ block: 'nearest' });
-                                    item.click();
-                                    return 'selected';
-                                }
+                if (dropdownOpened) {
+                    await delay(1000, 2000);
+                    const selected = await page.evaluate((boardName) => {
+                        // Look for exact board row
+                        const rows = Array.from(document.querySelectorAll(`[data-test-id="board-row-${boardName}"]`));
+                        if (rows.length > 0) { rows[0].click(); return true; }
+                        
+                        // Fallback: search all divs for the exact text
+                        const allDivs = Array.from(document.querySelectorAll('div'));
+                        for(let d of allDivs) {
+                            if (d.innerText && d.innerText.trim().toLowerCase() === boardName.toLowerCase()) {
+                                d.click(); return true;
                             }
                         }
-
-                        // Not found, look for create board button
-                        const createBtn = Array.from(document.querySelectorAll('[role="button"], button, [role="menuitem"], div[role="button"]'))
-                            .find(el => {
-                                const txt = (el.innerText || '').trim().toLowerCase();
-                                return el.offsetParent !== null && (txt === 'create board' || txt.includes('create board'));
-                            });
-                        
-                        if (createBtn) {
-                            createBtn.scrollIntoView({ block: 'nearest' });
-                            createBtn.click();
-                            return 'create_clicked';
-                        }
-                        
-                        return 'failed';
-                    }, targetBoard);
-
-                    if (boardAction === 'create_clicked') {
-                        console.log(`[Uploader - ${this.accountName}] Board "${pinData.board_name}" not found. Creating it...`);
-                        await page.waitForSelector('input[id="boardEditName"]', { timeout: 5000 }).catch(()=>{});
-                        await page.type('input[id="boardEditName"]', pinData.board_name, { delay: 50 });
-                        await delay(1000, 1500);
-
-                        await page.evaluate(() => {
-                            const buttons = Array.from(document.querySelectorAll('div[role="dialog"] button, div[data-test-id="create-board-modal"] button, form button'));
-                            const createBtn = buttons.find(b => (b.innerText || '').trim().toLowerCase() === 'create');
-                            if (createBtn) createBtn.click();
-                        });
-                        await delay(3000, 4000);
-                        console.log(`[Uploader - ${this.accountName}] Created and selected new board: "${pinData.board_name}"`);
-                    } else if (boardAction === 'selected') {
-                        console.log(`[Uploader - ${this.accountName}] Selected existing board: "${pinData.board_name}"`);
-                        await delay(1000, 2000);
+                        return false;
+                    }, pinData.board_name);
+                    
+                    if (selected) {
+                        console.log(`[Uploader - ${this.accountName}] Successfully selected board: "${pinData.board_name}"`);
                     } else {
-                        console.log(`[Uploader - ${this.accountName}] Failed to select or create board, proceeding with default.`);
+                        console.log(`[Uploader - ${this.accountName}] Board "${pinData.board_name}" not found in dropdown. Continuing with default.`);
+                        // Close dropdown by pressing Escape
+                        await page.keyboard.press('Escape');
                     }
-                } else {
-                    console.log(`[Uploader - ${this.accountName}] Could not open board dropdown.`);
+                    await delay(1000, 2000);
                 }
             }
 
             // 5. Click Publish
-            const publishSelector = '[data-test-id="pwt-publish-button"], [data-test-id="board-dropdown-save-button"], button[aria-label="Publish"]';
-            const publishBtn = await page.$(publishSelector);
+            const publishSelector = '[data-test-id="pwt-publish-button"], [data-test-id="board-dropdown-save-button"], button[aria-label="Publish"], button';
+            const publishBtns = await page.$$(publishSelector);
+            let publishBtn = null;
+            for (let btn of publishBtns) {
+                const text = await page.evaluate(el => el.innerText, btn);
+                if (text && text.toLowerCase().includes('publish')) { publishBtn = btn; break; }
+            }
+            
+            if (!publishBtn && publishBtns.length > 0) publishBtn = publishBtns[0]; // fallback
+
             if (publishBtn) {
                 console.log(`[Uploader - ${this.accountName}] Clicking Publish...`);
                 await publishBtn.click();
                 
-                // Wait for success toast or URL change
-                await delay(5000, 8000); 
+                console.log(`[Uploader - ${this.accountName}] Waiting for upload to complete...`);
+                // Wait up to 20 seconds for the URL to change (meaning success)
+                try {
+                    await page.waitForNavigation({ timeout: 20000, waitUntil: 'networkidle2' });
+                } catch(e) {
+                    // Sometimes it doesn't navigate but shows a toast
+                    await delay(5000);
+                }
             } else {
                 console.log(`[Uploader - ${this.accountName}] Could not find Publish button.`);
             }
