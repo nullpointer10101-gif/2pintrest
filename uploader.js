@@ -62,20 +62,24 @@ class PinterestUploader {
 
             // 3. Type Title
             if (pinData.title) {
-                const titleSelector = 'input[placeholder*="title"], textarea[placeholder*="title"], [data-test-id="pin-builder-title"]';
+                const titleSelector = 'div[aria-label="Add your title"], input[placeholder*="title"], textarea[placeholder*="title"], [data-test-id="pin-builder-title"]';
                 await page.waitForSelector(titleSelector, { timeout: 10000 }).catch(() => {});
                 const titleEls = await page.$$(titleSelector);
                 if (titleEls.length > 0) {
+                    await titleEls[0].click();
+                    await delay(500);
                     await titleEls[0].type(pinData.title, { delay: 50 });
                 }
             }
 
             // 4. Type Description
             if (pinData.description) {
-                const descSelector = 'textarea[placeholder*="Tell everyone"], [data-test-id="pin-builder-description"]';
+                const descSelector = 'div[aria-label="Tell everyone what your Pin is about"], textarea[placeholder*="Tell everyone"], [data-test-id="pin-builder-description"]';
                 await page.waitForSelector(descSelector, { timeout: 10000 }).catch(() => {});
                 const descEls = await page.$$(descSelector);
                 if (descEls.length > 0) {
+                    await descEls[0].click();
+                    await delay(500);
                     await descEls[0].type(pinData.description, { delay: 30 });
                 }
             }
@@ -265,5 +269,6 @@ async function startUploaderLoop(maxPinsPerRun = 999999) {
 }
 
 module.exports = {
-    startUploaderLoop
+    startUploaderLoop,
+    PinterestUploader
 };
