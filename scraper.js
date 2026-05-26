@@ -108,41 +108,45 @@ async function scrapeTargetChannels() {
             // Wait extra time for the profile page to render its boards
             await waitMs(6000);
 
-            // Fallback: If no boards caught from API, try extracting them directly from the DOM!
-            if (allBoards.length === 0) {
-                console.log('[Scraper] No boards caught from network intercept, trying DOM extraction...');
-                const domBoards = await page.evaluate((uname) => {
-                    const links = Array.from(document.querySelectorAll('a'));
-                    const boards = [];
-                    const seen = new Set();
-                    links.forEach(a => {
-                        let href = a.getAttribute('href');
-                        if (!href) return;
-                        
-                        // Handle absolute URLs by extracting pathname
-                        if (href.startsWith('http')) {
-                            try { href = new URL(href).pathname; } catch(e) {}
-                        }
-                        
-                        // A board URL looks like /username/board-name/
-                        if (href.startsWith(`/${uname}/`) && href.split('/').length >= 4) {
-                            if (!seen.has(href)) {
-                                seen.add(href);
-                                // The board name is the 3rd segment
-                                const boardSegment = href.split('/')[2];
-                                if (boardSegment && boardSegment.length > 0) {
-                                    boards.push({ 
-                                        name: boardSegment.replace(/-/g, ' '), 
-                                        url: href 
-                                    });
-                                }
+            // Fallback: ALWAYS try extracting them directly from the DOM and merge!
+            console.log(`[Scraper] Merging DOM boards with API boards (currently ${allBoards.length})...`);
+            const domBoards = await page.evaluate((uname) => {
+                const links = Array.from(document.querySelectorAll('a'));
+                const boards = [];
+                const seen = new Set();
+                links.forEach(a => {
+                    let href = a.getAttribute('href');
+                    if (!href) return;
+                    
+                    // Handle absolute URLs by extracting pathname
+                    if (href.startsWith('http')) {
+                        try { href = new URL(href).pathname; } catch(e) {}
+                    }
+                    
+                    // A board URL looks like /username/board-name/
+                    // Make it case insensitive for uname
+                    if (href.toLowerCase().startsWith(`/${uname.toLowerCase()}/`) && href.split('/').length >= 4) {
+                        if (!seen.has(href)) {
+                            seen.add(href);
+                            // The board name is the 3rd segment
+                            const boardSegment = href.split('/')[2];
+                            if (boardSegment && boardSegment.length > 0) {
+                                boards.push({ 
+                                    name: boardSegment.replace(/-/g, ' '), 
+                                    url: href 
+                                });
                             }
                         }
-                    });
-                    return boards;
-                }, targetUsername);
-                allBoards.push(...domBoards);
-            }
+                    }
+                });
+                return boards;
+            }, targetUsername);
+            
+            domBoards.forEach(db => {
+                if (!allBoards.find(ab => ab.url === db.url)) {
+                    allBoards.push(db);
+                }
+            });
 
             // FILTER: Only keep boards that actually belong to the target username.
             // (This prevents accidentally scraping the logged-in user's own boards!)
