@@ -6,7 +6,7 @@ const db = require('./db');
 const config = require('./config.json');
 
 // Helper to wait randomly between min and max ms
-const delay = (min, max) => new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (max - min + 1) + min)));
+const delay = (min, max = min) => new Promise(resolve => setTimeout(resolve, Math.floor(Math.random() * (max - min + 1) + min)));
 
 class PinterestUploader {
     constructor(accountName, sessionCookie, browser) {
