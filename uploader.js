@@ -194,8 +194,8 @@ class PinterestUploader {
     }
 }
 
-async function startUploaderLoop(maxPinsPerRun = 5) {
-    console.log(`[Uploader] Starting Medium-Pace upload batch with Puppeteer (Max ${maxPinsPerRun} pins)...`);
+async function startUploaderLoop(maxPinsPerRun = 999999) {
+    console.log(`[Uploader] Starting Continuous upload batch with Puppeteer...`);
 
     const browser = await puppeteer.launch({ 
         headless: true,
@@ -225,7 +225,7 @@ async function startUploaderLoop(maxPinsPerRun = 5) {
             const pin = await db.getNextPendingPin();
             
             if (!pin) {
-                console.log('[Uploader] Queue is empty. Nothing to upload right now.');
+                console.log('[Uploader] Queue is empty. All extracted pins have been posted.');
                 break; // Exit the loop so GitHub Action can finish
             }
 
@@ -249,7 +249,6 @@ async function startUploaderLoop(maxPinsPerRun = 5) {
             pinsProcessed++;
 
             if (pinsProcessed >= maxPinsPerRun) {
-                console.log(`[Uploader] Reached max pins for this run (${maxPinsPerRun}). Exiting gracefully.`);
                 break;
             }
 
@@ -257,9 +256,8 @@ async function startUploaderLoop(maxPinsPerRun = 5) {
             console.error('[Uploader] Loop error:', e.message);
         }
 
-        // The Medium Pace Jitter (1 to 2 minutes) between pins
-        console.log(`[Uploader] Sleeping for ${config.min_delay_ms / 1000} to ${config.max_delay_ms / 1000} seconds to maintain medium pace...`);
-        await delay(config.min_delay_ms, config.max_delay_ms);
+        console.log(`[Uploader] Sleeping for 15 seconds before the next pin...`);
+        await delay(15000, 15000); // Wait exactly 15 seconds
     }
 
     await browser.close();
