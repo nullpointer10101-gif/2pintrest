@@ -172,11 +172,24 @@ class PinterestUploader {
                 try {
                     await page.waitForNavigation({ timeout: 20000, waitUntil: 'networkidle2' });
                 } catch(e) {
-                    // Sometimes it doesn't navigate but shows a toast
+                    // Check if there is an error popup on the screen
+                    const errorPopupText = await page.evaluate(() => {
+                        return document.body.innerText;
+                    });
+                    
+                    if (errorPopupText && errorPopupText.toLowerCase().includes('published a lot today')) {
+                        console.error(`[Uploader - ${this.accountName}] PINTEREST DAILY LIMIT REACHED! You must wait 24 hours.`);
+                        await page.close();
+                        return false; 
+                    }
+
+                    // Otherwise assume it might have succeeded without navigating (toast)
                     await delay(5000);
                 }
             } else {
                 console.log(`[Uploader - ${this.accountName}] Could not find Publish button.`);
+                await page.close();
+                return false;
             }
 
             // Cleanup temp file
