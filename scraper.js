@@ -33,10 +33,11 @@ async function scrapeTargetChannels() {
     const page = await browser.newPage();
     
     // Inject session cookie
-    if (config.destination_channels[0].session_cookie) {
+    const sessionCookie = process.env.PINTEREST_SESSION_COOKIE || config.destination_channels[0].session_cookie;
+    if (sessionCookie && sessionCookie !== "USE_ENV_VARIABLE") {
         await page.setCookie({
             name: '_pinterest_sess',
-            value: config.destination_channels[0].session_cookie,
+            value: sessionCookie,
             domain: '.pinterest.com'
         });
         console.log('[Scraper] Session cookie injected.');

@@ -3,7 +3,6 @@ node_modules/
 
 # Secrets - NEVER push these
 .env
-config.json
 
 # Temp files created during bot runs
 tmp_*.jpg

@@ -203,7 +203,8 @@ async function startUploaderLoop(maxPinsPerRun = 5) {
     // Initialize all uploader sessions
     const uploaders = {};
     for (const acc of config.destination_channels) {
-        uploaders[acc.name] = new PinterestUploader(acc.name, acc.session_cookie, browser);
+        const sessionCookie = process.env.PINTEREST_SESSION_COOKIE || acc.session_cookie;
+        uploaders[acc.name] = new PinterestUploader(acc.name, sessionCookie, browser);
     }
 
     let pinsProcessed = 0;

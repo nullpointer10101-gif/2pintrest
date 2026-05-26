@@ -1,0 +1,16 @@
+{
+  "target_channels": [
+    "https://pin.it/PRd6ZaIn7",
+    "https://pin.it/gvd9JFDFJ"
+  ],
+  "destination_channels": [
+    {
+      "name": "primary_account",
+      "session_cookie": "USE_ENV_VARIABLE"
+    }
+  ],
+  "distribution_mode": "round-robin",
+  "min_delay_ms": 60000,
+  "max_delay_ms": 120000,
+  "max_pins_per_board": 500
+}
