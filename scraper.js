@@ -228,6 +228,32 @@ async function scrapeTargetChannels() {
                 page.on('response', pinListener);
                 await page.goto(boardUrl, { waitUntil: 'domcontentloaded', timeout: 120000 });
                 await waitMs(5000);
+
+                // --- SCROLLING LOOP FOR MAX PINS ---
+                console.log(`[Scraper] Scrolling to load more pins...`);
+                let previousHeight = await page.evaluate('document.body.scrollHeight');
+                let scrollAttempts = 0;
+                while (boardPins.length < config.max_pins_per_board && scrollAttempts < 40) {
+                    await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
+                    await waitMs(3500); // Wait for the new pins to load and be intercepted
+                    
+                    let newHeight = await page.evaluate('document.body.scrollHeight');
+                    if (newHeight === previousHeight) {
+                        // Try a tiny scroll up then down to trigger Pinterest's lazy loader
+                        await page.evaluate('window.scrollTo(0, document.body.scrollHeight - 500)');
+                        await waitMs(1000);
+                        await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
+                        await waitMs(3500);
+                        newHeight = await page.evaluate('document.body.scrollHeight');
+                        if (newHeight === previousHeight) {
+                            console.log(`[Scraper] Reached bottom of board or no more pins loading.`);
+                            break;
+                        }
+                    }
+                    previousHeight = newHeight;
+                    scrollAttempts++;
+                }
+
                 page.off('response', pinListener);
 
                 // Fallback: If network intercept missed it (cache/serviceworker), extract from DOM
