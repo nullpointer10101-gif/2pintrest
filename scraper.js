@@ -177,17 +177,40 @@ async function scrapeTargetChannels() {
                             const items = json?.resource_response?.data || [];
                             items.forEach(item => {
                                 if (item?.type === 'pin' && item?.id && item?.images) {
-                                    // Skip video pins to avoid uploading thumbnails as static images
-                                    const isVideo = item.is_video === true || !!item.videos;
-                                    if (isVideo) {
-                                        return;
+                                    let mediaUrl = null;
+                                    
+                                    // 1. Check if it's a video and try to extract the highest quality MP4
+                                    if (item.videos && item.videos.video_list) {
+                                        const vList = item.videos.video_list;
+                                        // Prefer higher resolution MP4s
+                                        const preferredFormats = ['V_1080P', 'V_720P', 'V_EXP6', 'V_EXP5', 'V_EXP4', 'V_EXP3', 'V_HLSV4_MAC'];
+                                        for (const fmt of preferredFormats) {
+                                            if (vList[fmt] && vList[fmt].url && vList[fmt].url.endsWith('.mp4')) {
+                                                mediaUrl = vList[fmt].url;
+                                                break;
+                                            }
+                                        }
+                                        // Fallback to any MP4 in the list
+                                        if (!mediaUrl) {
+                                            for (const key in vList) {
+                                                if (vList[key].url && vList[key].url.endsWith('.mp4')) {
+                                                    mediaUrl = vList[key].url;
+                                                    break;
+                                                }
+                                            }
+                                        }
                                     }
 
-                                    const imgObj = item.images.orig || item.images['736x'] || Object.values(item.images)[0] || {};
-                                    if (imgObj.url) {
+                                    // 2. If no video found, extract the static image
+                                    if (!mediaUrl && item.images) {
+                                        const imgObj = item.images.orig || item.images['736x'] || Object.values(item.images)[0] || {};
+                                        mediaUrl = imgObj.url;
+                                    }
+
+                                    if (mediaUrl) {
                                         boardPins.push({
                                             id: String(item.id),
-                                            image_url: imgObj.url,
+                                            image_url: mediaUrl,
                                             title: item.title || item.grid_title || '',
                                             description: item.description || '',
                                             board_name: board.name

@@ -46,18 +46,25 @@ class PinterestUploader {
 
             console.log(`[Uploader - ${this.accountName}] Pin-builder loaded successfully! Executing UI automation.`);
             
-            // 1. Download image to temporary file
-            const tmpImagePath = path.join(__dirname, `tmp_${Date.now()}.jpg`);
+            // 1. Download image/video to temporary file
+            const isMp4 = pinData.image_url.includes('.mp4');
+            const fileExt = isMp4 ? '.mp4' : '.jpg';
+            const tmpImagePath = path.join(__dirname, `tmp_${Date.now()}${fileExt}`);
             const writer = fs.createWriteStream(tmpImagePath);
             const response = await axios({ url: pinData.image_url, method: 'GET', responseType: 'stream' });
             response.data.pipe(writer);
             await new Promise((resolve, reject) => { writer.on('finish', resolve); writer.on('error', reject); });
 
-            // 2. Upload image via input element
+            // 2. Upload media via input element
             const fileInput = await page.$('input[type="file"]');
             if (fileInput) {
                 await fileInput.uploadFile(tmpImagePath);
-                await delay(2000, 4000);
+                if (isMp4) {
+                    console.log(`[Uploader - ${this.accountName}] Video file selected. Waiting 15 seconds for initial processing...`);
+                    await delay(15000, 20000);
+                } else {
+                    await delay(2000, 4000);
+                }
             }
 
             // 3. Type Title
