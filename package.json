@@ -4,7 +4,7 @@
   "description": "Standalone Pinterest Scrape and Post automation",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js --web"
+    "start": "node index.js"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.0",

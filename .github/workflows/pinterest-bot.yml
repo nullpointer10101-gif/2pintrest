@@ -1,0 +1,33 @@
+name: Pinterest Bot Cron
+
+on:
+  schedule:
+    # Runs every 2 hours at minute 0 (e.g. 00:00, 02:00, 04:00)
+    - cron: '0 */2 * * *'
+  
+  # Allow manual trigger from the GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  scrape-and-post:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Bot
+        env:
+          PINTEREST_SESSION_COOKIE: ${{ secrets.PINTEREST_SESSION_COOKIE }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+        run: npm start
