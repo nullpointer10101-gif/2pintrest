@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  pinterest-autopost:
+    build: .
+    container_name: standalone-poster
+    restart: unless-stopped
+    volumes:
+      # Mount the sqlite database locally so it isn't erased when the container restarts
+      - ./queue.db:/usr/src/app/queue.db
+      # Mount config so it can be edited without rebuilding the image
+      - ./config.json:/usr/src/app/config.json
+    environment:
+      - NODE_ENV=production
