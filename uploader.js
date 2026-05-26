@@ -33,8 +33,8 @@ class PinterestUploader {
             // Navigate to Pin Creation page (Using Pinterest's standard UI builder)
             await page.goto('https://www.pinterest.com/pin-builder/', { waitUntil: 'domcontentloaded', timeout: 120000 });
 
-            // Ensure we are actually logged in by checking for login elements
-            const isLoggedIn = await page.$('div[data-test-id="header-profile"]');
+            // Ensure we are actually logged in by waiting for the profile picture or account menu
+            const isLoggedIn = await page.waitForSelector('div[data-test-id="header-profile"]', { timeout: 15000 }).catch(() => null);
             if (!isLoggedIn) {
                 console.error(`[Uploader - ${this.accountName}] Session cookie might be invalid. Not logged in.`);
                 await page.close();
