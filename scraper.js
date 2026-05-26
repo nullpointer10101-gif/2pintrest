@@ -39,6 +39,9 @@ async function scrapeTargetChannels() {
     });
     const page = await browser.newPage();
     
+    // Spoof User-Agent to prevent headless blocking
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+    
     // Block heavy resources to save RAM and CPU on Render Free Tier
     await page.setRequestInterception(true);
     page.on('request', (req) => {

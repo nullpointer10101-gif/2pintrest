@@ -20,6 +20,9 @@ class PinterestUploader {
         const page = await this.browser.newPage();
         
         try {
+            // Spoof User-Agent to prevent headless blocking
+            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
             // Set the session cookie so we are logged in
             await page.setCookie({
                 name: '_pinterest_sess',
@@ -36,7 +39,7 @@ class PinterestUploader {
             // Ensure we are actually logged in by waiting for the profile picture or account menu
             const isLoggedIn = await page.waitForSelector('div[data-test-id="header-profile"], div[data-test-id="saved-tab"]', { timeout: 30000 }).catch(() => null);
             if (!isLoggedIn) {
-                console.error(`[Uploader - ${this.accountName}] Session cookie might be invalid. Not logged in.`);
+                console.error(`[Uploader - ${this.accountName}] Session cookie might be invalid. Not logged in. Current URL is: ${page.url()}`);
                 await page.close();
                 return false;
             }
