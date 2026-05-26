@@ -34,10 +34,10 @@ class PinterestUploader {
             });
 
             // Navigate to Pin Creation page (Using Pinterest's standard UI builder)
-            await page.goto('https://www.pinterest.com/pin-builder/', { waitUntil: 'domcontentloaded', timeout: 120000 });
+            await page.goto('https://www.pinterest.com/pin-creation-tool/', { waitUntil: 'domcontentloaded', timeout: 120000 });
 
             // Ensure we are actually logged in by waiting for the profile picture or account menu
-            const isLoggedIn = await page.waitForSelector('div[data-test-id="header-profile"], div[data-test-id="saved-tab"]', { timeout: 30000 }).catch(() => null);
+            const isLoggedIn = await page.waitForSelector('div[data-test-id="header-profile"], div[data-test-id="saved-tab"], button[data-test-id="header-accounts-options-button"]', { timeout: 30000 }).catch(() => null);
             if (!isLoggedIn) {
                 console.error(`[Uploader - ${this.accountName}] Session cookie might be invalid. Not logged in. Current URL is: ${page.url()}`);
                 await page.close();
@@ -56,7 +56,10 @@ class PinterestUploader {
             await new Promise((resolve, reject) => { writer.on('finish', resolve); writer.on('error', reject); });
 
             // 2. Upload media via input element
-            const fileInput = await page.$('input[type="file"]');
+            await page.waitForSelector('input[type="file"], input[id="storyboard-upload-input"]', { timeout: 15000 }).catch(()=>{});
+            let fileInput = await page.$('input[type="file"]');
+            if (!fileInput) fileInput = await page.$('input[id="storyboard-upload-input"]');
+            
             if (fileInput) {
                 await fileInput.uploadFile(tmpImagePath);
                 if (isMp4) {
@@ -68,27 +71,46 @@ class PinterestUploader {
             }
 
             // 3. Type Title
-            if (pinData.title) {
-                const titleSelector = 'div[aria-label="Add your title"], input[placeholder*="title"], textarea[placeholder*="title"], [data-test-id="pin-builder-title"]';
-                await page.waitForSelector(titleSelector, { timeout: 10000 }).catch(() => {});
-                const titleEls = await page.$$(titleSelector);
-                if (titleEls.length > 0) {
-                    await titleEls[0].click();
-                    await delay(500);
-                    await titleEls[0].type(pinData.title, { delay: 50 });
-                }
+            await page.waitForSelector('textarea[id="storyboard-selector-title"], input[id="storyboard-selector-title"]', { timeout: 10000 }).catch(()=>{});
+            let titleSelector = null;
+            if (await page.$('input[id="storyboard-selector-title"]')) titleSelector = 'input[id="storyboard-selector-title"]';
+            else if (await page.$('textarea[id="storyboard-selector-title"]')) titleSelector = 'textarea[id="storyboard-selector-title"]';
+            
+            if (titleSelector) {
+                await page.type(titleSelector, pinData.title || 'Inspiration', { delay: 50 });
             }
+            await delay(1500, 2500);
 
             // 4. Type Description
             if (pinData.description) {
-                const descSelector = 'div[aria-label="Tell everyone what your Pin is about"], textarea[placeholder*="Tell everyone"], [data-test-id="pin-builder-description"]';
-                await page.waitForSelector(descSelector, { timeout: 10000 }).catch(() => {});
-                const descEls = await page.$$(descSelector);
-                if (descEls.length > 0) {
-                    await descEls[0].click();
-                    await delay(500);
-                    await descEls[0].type(pinData.description, { delay: 30 });
-                }
+                // Let's use evaluate to inject text to avoid formatting issues
+                await page.evaluate((desc) => {
+                    const draftContainers = document.querySelectorAll('div[data-test-id*="pin-draft-description"]');
+                    let target = null;
+                    if (draftContainers.length > 0) {
+                        target = draftContainers[0].querySelector('div[contenteditable="true"]') || draftContainers[0];
+                    } else {
+                        target = document.querySelector('div[contenteditable="true"]') || document.querySelector('textarea[placeholder*="description"]');
+                    }
+                    if (target) {
+                        target.focus();
+                        document.execCommand('insertText', false, desc);
+                    }
+                }, pinData.description);
+                await delay(1500, 2500);
+            }
+
+            // 4.2 Type Link
+            if (pinData.link) {
+                await page.evaluate((link) => {
+                    const inputs = Array.from(document.querySelectorAll('textarea, input'));
+                    const linkInput = inputs.find(el => el.placeholder && (el.placeholder.toLowerCase().includes('link') || el.id === 'WebsiteField'));
+                    if (linkInput) {
+                        linkInput.value = link;
+                        linkInput.dispatchEvent(new Event('input', { bubbles: true }));
+                    }
+                }, pinData.link);
+                await delay(1000, 1500);
             }
 
             // 4.5. Select the Board
