@@ -17,5 +17,5 @@ COPY . .
 RUN chown -R pptruser:pptruser /app
 USER pptruser
 
-# Start the bot in continuous cron mode
-CMD ["node", "index.js", "--cron"]
+# Start the bot in Web Server Mode (required for Render to detect an open port)
+CMD ["node", "index.js", "--web"]

@@ -196,7 +196,7 @@ async function startUploaderLoop(maxPinsPerRun = 5) {
 
     // Launch a single browser instance for all uploading
     const browser = await puppeteer.launch({ 
-        headless: false,
+        headless: true,
         args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-notifications', '--disable-dev-shm-usage'] 
     });
 
