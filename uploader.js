@@ -180,7 +180,7 @@ class PinterestUploader {
                     if (errorPopupText && errorPopupText.toLowerCase().includes('published a lot today')) {
                         console.error(`[Uploader - ${this.accountName}] PINTEREST DAILY LIMIT REACHED! You must wait 24 hours.`);
                         await page.close();
-                        return false; 
+                        return 'rate_limited'; 
                     }
 
                     // Otherwise assume it might have succeeded without navigating (toast)
@@ -248,7 +248,11 @@ async function startUploaderLoop(maxPinsPerRun = 999999) {
 
             const success = await uploader.uploadPin(pin);
 
-            if (success) {
+            if (success === 'rate_limited') {
+                console.error('[Uploader] Stopping uploader loop because daily limit was reached.');
+                await db.updatePinStatus(pin, 'failed'); // Put it back for tomorrow
+                break;
+            } else if (success) {
                 await db.updatePinStatus(pin.id, 'success');
                 console.log(`[Uploader] Successfully uploaded Pin #${pin.id}.`);
             } else {
